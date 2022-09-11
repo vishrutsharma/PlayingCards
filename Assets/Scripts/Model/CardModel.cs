@@ -13,21 +13,24 @@ namespace JungleeCards.Models
         DIAMONDS
     }
 
+
     [Serializable]
     public class CardsData
     {
         public SuiteType suitType;
-        public List<Texture2D> cards;
+        public List<Sprite> cards;
     }
 
     [Serializable]
     public class CardModel
     {
-        public string cardId;
 
-        public CardModel()
-        {
-            cardId = "Vish";
-        }
+        public int autoGroupifySampleCount;
+        public int autoGroupifyCardRange;
+        public float groupOffset;
+        public float cardPlacementDivisorOffset;
+        public float cardWidth;
+        public float cardHeight;
+        public int minCardsCountToGroupify;
     }
 }
