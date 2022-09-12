@@ -1,46 +1,69 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using JungleeCards.Controllers;
+using UnityEngine.UI;
+using System.Collections;
 using JungleeCards.Models;
+using JungleeCards.Common;
+using JungleeCards.Controllers;
+using System.Collections.Generic;
 
 namespace JungleeCards.Views
 {
     public class CardGroupView : EntityView
     {
+        #region ------------------------------ Serialize Fields ---------------------------------------
+        [SerializeField] private Text pointsText;
+
+        #endregion--------------------------------------------------------------------------------------
+
+
+        #region ------------------------------ Private Fields ------------------------------------------
         private List<string> containingCardsID;
-        private bool isActiveInPool = false;
         private RectTransform rectTransform;
         private float desiredWidth = 0;
+        private float scaleAnimDuration = 0.1f;
 
-        private IEnumerator ScaleRect()
+        #endregion--------------------------------------------------------------------------------------
+
+
+        #region ------------------------------ Private Methods ------------------------------------------
+        private IEnumerator ScaleRect(float width)
         {
             float cTime = 0;
             Vector2 currentSize = rectTransform.sizeDelta;
             while (cTime < 1)
             {
-                rectTransform.sizeDelta = Vector2.Lerp(currentSize, new Vector2(desiredWidth, rectTransform.sizeDelta.y), cTime);
+                rectTransform.sizeDelta = Vector2.Lerp(currentSize, new Vector2(width, rectTransform.sizeDelta.y), cTime);
                 yield return new WaitForEndOfFrame();
-                cTime += Time.deltaTime / 0.1f;
+                cTime += Time.deltaTime / scaleAnimDuration;
             }
-            rectTransform.sizeDelta = new Vector2(desiredWidth, rectTransform.sizeDelta.y);
+            rectTransform.sizeDelta = new Vector2(width, rectTransform.sizeDelta.y);
 
             if (rectTransform.sizeDelta.x == 0)
             {
+                transform.localPosition = Vector2.zero;
                 this.gameObject.SetActive(false);
             }
         }
 
-        private void UpdateRectSize()
+        private void UpdateScore()
+        {
+            string score = GetController<CardController>().GetScore(containingCardsID);
+            pointsText.text = string.Format(GameStrings.groupScorePrefix, score);
+        }
+
+        #endregion--------------------------------------------------------------------------------------
+
+
+        #region ------------------------------ Public Methods ------------------------------------------
+
+        public void UpdateRectSize()
         {
             if (containingCardsID.Count == 0)
             {
                 return;
             }
-            float cardWidth = this.GetController<CardController>().GetData<CardModel>().cardWidth;
-
+            float cardWidth = this.GetController<CardController>().CardDimension.x;
             float cardOffsetDivisor = this.GetController<CardController>().GetData<CardModel>().cardPlacementDivisorOffset;
-
             float res1 = containingCardsID.Count * cardWidth;
             float res2 = (((containingCardsID.Count - 1) * cardWidth) / cardOffsetDivisor);
             desiredWidth = res1 - res2;
@@ -49,20 +72,24 @@ namespace JungleeCards.Views
             {
                 desiredWidth = cardWidth;
             }
-            StartCoroutine(ScaleRect());
+            float w = desiredWidth + this.GetController<CardController>().GetData<CardModel>().cardGroupWidthPadding;
+            StartCoroutine(ScaleRect(w));
         }
-
 
         public override void InitView(string id)
         {
             this.ID = id;
             containingCardsID = new List<string>();
             rectTransform = GetComponent<RectTransform>();
+            var ratio = GetController<CardController>().GetData<CardModel>().cardGroupHeightPadding;
+            var height = GetController<CardController>().CardDimension.y + ratio;
+            rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, height);
         }
 
         public void AddCardWithID(string cardId)
         {
             containingCardsID.Add(cardId);
+            UpdateScore();
             UpdateRectSize();
         }
 
@@ -80,11 +107,11 @@ namespace JungleeCards.Views
             if (containingCardsID.Count == 0)
             {
                 desiredWidth = 0;
-                StartCoroutine(ScaleRect());
+                this.gameObject.SetActive(false);
             }
+            UpdateScore();
             UpdateRectSize();
         }
-
 
         public float GetWidth()
         {
@@ -103,5 +130,6 @@ namespace JungleeCards.Views
             return rect1.Overlaps(rect2);
         }
 
+        #endregion--------------------------------------------------------------------------------------
     }
 }

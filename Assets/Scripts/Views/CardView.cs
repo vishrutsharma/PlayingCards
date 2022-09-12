@@ -1,22 +1,33 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using JungleeCards.Controllers;
-using JungleeCards.Models;
 using UnityEngine.UI;
+using System.Collections;
+using JungleeCards.Controllers;
 using UnityEngine.EventSystems;
 
 namespace JungleeCards.Views
 {
     public class CardView : EntityView, IDragHandler, IEndDragHandler, IBeginDragHandler, IPointerClickHandler
     {
+
+        #region ------------------------------------- Public Fields -----------------------------------------
         public string CardGroupID { get; private set; }
         public bool IsSelected { get; private set; }
 
+        #endregion ------------------------------------------------------------------------------------------
+
+
+        #region ------------------------------------- Private Fields -----------------------------------------
         private bool inMovingState = false;
         private float movementDuration = 0.2f;
         private bool inDraggingState = false;
+        private GameObject selectedObject;
+        private Image cardImage;
+        private int lastSiblingIndex = 0;
 
+        #endregion ------------------------------------------------------------------------------------------
+
+
+        #region ------------------------------------- Private Methods -----------------------------------------
         private IEnumerator MoveTo(Vector2 desiredPos)
         {
             Vector2 startPos = transform.localPosition;
@@ -31,6 +42,10 @@ namespace JungleeCards.Views
             inMovingState = false;
         }
 
+        #endregion ------------------------------------------------------------------------------------------
+
+
+        #region ------------------------------------- Public Methods -----------------------------------------
         public void SetGroupID(string id)
         {
             this.CardGroupID = id;
@@ -40,17 +55,21 @@ namespace JungleeCards.Views
         {
             this.ID = id;
             IsSelected = false;
+            selectedObject = transform.GetChild(0).gameObject;
+            cardImage = GetComponent<Image>();
+            selectedObject.SetActive(false);
         }
 
         public void SetSprite(Sprite cardSrite)
         {
-            this.GetComponent<Image>().sprite = cardSrite;
+            cardImage.sprite = cardSrite;
         }
 
         public void OnBeginDrag(PointerEventData eventData)
         {
             if (this.GetController<CardController>().IsInputAllowed())
             {
+                lastSiblingIndex = transform.GetSiblingIndex();
                 inDraggingState = true;
                 this.transform.SetParent(this.GetController<CardController>().draggableAreaTransform);
             }
@@ -85,6 +104,8 @@ namespace JungleeCards.Views
                 {
                     inMovingState = true;
                     IsSelected = !IsSelected;
+                    selectedObject.SetActive(IsSelected);
+                    cardImage.color = IsSelected ? this.GetController<CardController>().selectedCardColor : Color.white;
                     this.GetController<CardController>().OnCardStateChanged(ID, IsSelected);
                     Vector2 desiredPos = IsSelected ? new Vector2(transform.localPosition.x, 25) : new Vector2(transform.localPosition.x, 0);
                     StartCoroutine(MoveTo(desiredPos));
@@ -97,10 +118,19 @@ namespace JungleeCards.Views
             StartCoroutine(MoveTo(newPos));
         }
 
+        public void ResetToLastParent()
+        {
+            transform.SetSiblingIndex(lastSiblingIndex);
+        }
+
         public void ResetCardStatus()
         {
             inMovingState = false;
             IsSelected = false;
+            selectedObject.SetActive(false);
+            cardImage.color = Color.white;
         }
+
+        #endregion ------------------------------------------------------------------------------------------
     }
 }

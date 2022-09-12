@@ -1,16 +1,22 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using System;
+using UnityEngine;
 using JungleeCards.Controllers;
 
 namespace JungleeCards.Views
 {
     public abstract class EntityView : MonoBehaviour
     {
+        #region --------------------------------- Protected Fields -------------------------------------
         protected EntityController controller = null;
-        public string ID { get; protected set; }
+        #endregion -------------------------------------------------------------------------------------
 
+
+        #region --------------------------------- Public Fields ----------------------------------------
+        public string ID { get; protected set; }
+        #endregion -------------------------------------------------------------------------------------
+
+
+        #region --------------------------------- Public Methods ----------------------------------------
         public void SetController<T>(T controller) where T : EntityController
         {
             this.controller = (T)controller;
@@ -22,6 +28,7 @@ namespace JungleeCards.Views
         }
 
         public abstract void InitView(string id = null);
+        #endregion -------------------------------------------------------------------------------------
     }
 }
 

@@ -7,17 +7,18 @@ namespace JungleeCards.Controllers
     public class GameController : MonoBehaviour
     {
         #region --------------------------------- Serialize Fields -------------------------------------
-
         [SerializeField] private CardController cardController = null;
         [SerializeField] private JSONLoader jsonLoader;
         [SerializeField] private GameView gameView;
-
         #endregion --------------------------------------------------------------------------------------
 
-        private GameModel gameData;
 
         #region --------------------------------- Private Fields ----------------------------------------
+        private GameModel gameData;
+        #endregion --------------------------------------------------------------------------------------
 
+
+        #region --------------------------------- Private Methods ----------------------------------------
         private void Start()
         {
             LoadGameData();
@@ -41,7 +42,10 @@ namespace JungleeCards.Controllers
                             });
             });
         }
+        #endregion --------------------------------------------------------------------------------------
 
+
+        #region --------------------------------- Public Methods ----------------------------------------
         public void ToggleGroupButton(bool active)
         {
             gameView.ToggleGroupButton(active);
@@ -51,8 +55,6 @@ namespace JungleeCards.Controllers
         {
             cardController.MakeNewGroup();
         }
-
-
         #endregion --------------------------------------------------------------------------------------
     }
 }

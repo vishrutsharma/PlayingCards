@@ -1,22 +1,17 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using System;
+using UnityEngine;
 
 namespace JungleeCards.Controllers
 {
     public abstract class EntityController : MonoBehaviour
     {
         #region --------------------------------- Protected Fields -------------------------------------
-
         protected GameController gameController;
         protected object data;
-
         #endregion --------------------------------------------------------------------------------------
 
 
         #region --------------------------------- Public Methods ----------------------------------------
-
         public abstract void OnGameStart();
         public abstract void OnGameOver();
 
@@ -34,7 +29,6 @@ namespace JungleeCards.Controllers
         {
             return (T)Convert.ChangeType(this.data, typeof(T));
         }
-
         #endregion --------------------------------------------------------------------------------------
 
     }

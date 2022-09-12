@@ -27,10 +27,9 @@ namespace JungleeCards.Models
 
         public int autoGroupifySampleCount;
         public int autoGroupifyCardRange;
-        public float groupOffset;
         public float cardPlacementDivisorOffset;
-        public float cardWidth;
-        public float cardHeight;
+        public float cardGroupHeightPadding;
+        public float cardGroupWidthPadding;
         public int minCardsCountToGroupify;
     }
 }

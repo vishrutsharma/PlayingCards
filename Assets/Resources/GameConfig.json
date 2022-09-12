@@ -1,12 +1,11 @@
 {
   "cardModel":
     {
-        "autoGroupifySampleCount":6,
-        "autoGroupifyCardRange": 5,
-        "groupOffset":40,
+        "autoGroupifySampleCount":10,
+        "autoGroupifyCardRange": 10,
         "cardPlacementDivisorOffset":1.5,
-        "cardWidth":140,
-        "cardHeight":190,
+        "cardGroupHeightPadding":20,
+        "cardGroupWidthPadding":20,
         "minCardsCountToGroupify":2
     }
 }

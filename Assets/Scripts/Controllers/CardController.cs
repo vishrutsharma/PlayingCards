@@ -1,28 +1,38 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
-using JungleeCards.Models;
+using System.Collections;
 using JungleeCards.Views;
 using JungleeCards.Common;
-using UnityEngine.UI;
+using JungleeCards.Models;
+using System.Collections.Generic;
 
 namespace JungleeCards.Controllers
 {
     public class CardController : EntityController
     {
+        #region ----------------------------- Serialize Fields ------------------------------
         [SerializeField] private List<CardsData> cardsData;
         [SerializeField] private GameObject cardPrefab;
         [SerializeField] private GameObject cardGroupPrefab;
         [SerializeField] private Transform cardsContainerTransform;
+        #endregion ---------------------------------------------------------------------------
 
+
+        #region ----------------------------- Public Fields ----------------------------------
+        public Color selectedCardColor;
         public Transform draggableAreaTransform;
+        public Vector2 CardDimension { get; private set; } = Vector2.zero;
+        #endregion ---------------------------------------------------------------------------
 
 
+        #region ----------------------------- Private Fields ---------------------------------
         private List<CardGroupView> cardGroups;
         private List<CardView> cards;
         private List<string> selectedCardIds;
         private bool allowInput = false;
+        #endregion ---------------------------------------------------------------------------
 
+        #region ----------------------------- Private Methods ---------------------------------
         private bool IsValidDeck()
         {
             if (cardsData.Count != 4 ||
@@ -50,7 +60,7 @@ namespace JungleeCards.Controllers
 
         private IEnumerator AlignDeck(float delay)
         {
-            float cardWidth = GetData<CardModel>().cardWidth;
+            float cardWidth = CardDimension.x;
             float offsetDivisor = GetData<CardModel>().cardPlacementDivisorOffset;
             float sample = (cardWidth / 2) / offsetDivisor;
 
@@ -85,7 +95,7 @@ namespace JungleeCards.Controllers
                         }
                         else
                         {
-                            Debug.Log("CArd is null");
+                            Debug.Log("Card is null");
                         }
                     }
                 }
@@ -100,9 +110,9 @@ namespace JungleeCards.Controllers
             }
             cardView.SetGroupID(cardGroupView.ID);
             cardGroupView.AddCardWithID(cardView.ID);
+
             cardView.transform.SetParent(cardGroupView.transform);
             cardView.transform.SetAsLastSibling();
-            cardView.transform.localPosition = Vector2.zero;
         }
 
         private void UnGroupify(CardGroupView cardGroupView, CardView cardView)
@@ -126,11 +136,11 @@ namespace JungleeCards.Controllers
             return null;
         }
 
-        private Sprite GetCardSprite(string cardName)
+        private Tuple<SuiteType, int> GetCardInfo(string cardName)
         {
             SuiteType suiteType = default(SuiteType);
             string cardNumber = cardName.Substring(1);
-            int cardIndex = 0;
+            int cardId = 0;
 
             switch (cardName[0])
             {
@@ -151,36 +161,40 @@ namespace JungleeCards.Controllers
                     break;
             }
 
-
             switch (cardNumber)
             {
                 //Minus 1 for index for J ,Q and K
                 case "A":
-                    cardIndex = 0;
+                    cardId = 1;
                     break;
 
                 case "J":
-                    cardIndex = 10;
+                    cardId = 11;
                     break;
 
                 case "Q":
-                    cardIndex = 11;
+                    cardId = 12;
                     break;
 
                 case "K":
-                    cardIndex = 12;
+                    cardId = 13;
                     break;
                 default:
-                    cardIndex = System.Convert.ToInt16(cardNumber);
+                    cardId = System.Convert.ToInt16(cardNumber);
                     break;
             }
+            return new System.Tuple<SuiteType, int>(suiteType, cardId);
+        }
 
+        private Sprite GetCardSprite(string cardName)
+        {
+            Tuple<SuiteType, int> data = GetCardInfo(cardName);
 
-            for (int i = 0; i < cardsData.Count; i++)
+            for (int c = 0; c < cardsData.Count; c++)
             {
-                if (cardsData[i].suitType == suiteType)
+                if (cardsData[c].suitType == data.Item1)
                 {
-                    return cardsData[i].cards[cardIndex];
+                    return cardsData[c].cards[data.Item2 - 1];
                 }
             }
             return null;
@@ -200,37 +214,51 @@ namespace JungleeCards.Controllers
             int cCount = this.GetData<CardModel>().autoGroupifyCardRange;
             for (int i = 0; i < gCount; i++)
             {
-                int gIndex = Random.Range(0, groupIndexes.Count);
+                int gIndex = UnityEngine.Random.Range(0, groupIndexes.Count);
                 int groupIndex = groupIndexes[gIndex];
                 groupIndexes.RemoveAt(gIndex);
-                int cardRange = Random.Range(0, cCount);
+                int cardRange = UnityEngine.Random.Range(5, cCount);
 
-                if (cardRange >= cardsIndexes.Count)
+                if (cardRange < cardsIndexes.Count)
                 {
-                    break;
+                    for (int c = 0; c < cardRange; c++)
+                    {
+                        int cIndex = UnityEngine.Random.Range(0, cardsIndexes.Count);
+                        int cardsIndex = cardsIndexes[cIndex];
+                        cardsIndexes.RemoveAt(cIndex);
+                        CardView cardView = cards[cardsIndex];
+                        CardGroupView prevGroup = GetCardGroupWithID(cardView.CardGroupID);
+                        CardGroupView newGroup = cardGroups[groupIndex];
+                        if (prevGroup.ID != newGroup.ID)
+                        {
+                            UnGroupify(prevGroup, cardView);
+                            Groupify(newGroup, cardView);
+                        }
+                    }
                 }
+            }
 
-                for (int c = 0; c < cardRange; c++)
+            for (int i = 0; i < cardGroups.Count; i++)
+            {
+                if (cardGroups[i].GetContainingCards().Count > 0)
                 {
-                    int cIndex = Random.Range(0, cardsIndexes.Count);
-                    int cardsIndex = cardsIndexes[cIndex];
-                    cardsIndexes.RemoveAt(cIndex);
-                    CardView cardView = cards[cardsIndex];
-                    UnGroupify(GetCardGroupWithID(cardView.CardGroupID), cardView);
-                    CardGroupView groupView = cardGroups[groupIndex];
-                    Groupify(groupView, cardView);
+                    cardGroups[i].gameObject.SetActive(true);
                 }
             }
 
             groupIndexes.Clear();
             cardsIndexes.Clear();
         }
+        #endregion ---------------------------------------------------------------------------
 
+
+        #region ----------------------------- Public Methods ---------------------------------
         public void PopulateDeck(DeckData deckData)
         {
             string[] cardsToShow = deckData.data.deck.ToArray();
             for (int i = 0; i < cardsToShow.Length; i++)
             {
+                // Cards
                 string cardName = cardsToShow[i];
                 GameObject card = Instantiate(cardPrefab);
                 CardView cView = card.GetComponent<CardView>();
@@ -239,7 +267,13 @@ namespace JungleeCards.Controllers
                 cView.SetSprite(GetCardSprite(cardName));
                 cards.Add(cView);
 
+                if (CardDimension == Vector2.zero)
+                {
+                    CardDimension = new Vector2(card.GetComponent<RectTransform>().sizeDelta.x,
+                                    card.GetComponent<RectTransform>().sizeDelta.y);
+                }
 
+                //Card Groups
                 GameObject cardGroup = Instantiate(cardGroupPrefab);
                 cardGroup.transform.SetParent(cardsContainerTransform);
                 cardGroup.transform.localPosition = Vector3.zero;
@@ -250,8 +284,14 @@ namespace JungleeCards.Controllers
                 cardGroups.Add(cGView);
 
                 card.transform.SetParent(cGView.transform);
-                card.transform.localPosition = Vector3.zero;
+                card.transform.localPosition = new Vector2(0, 0);
                 Groupify(cGView, cView);
+            }
+
+            if (cards.Count <= this.GetData<CardModel>().autoGroupifySampleCount)
+            {
+                Debug.LogError("Cards in Deck are less than the Groups Sample Count");
+                return;
             }
             AutoGroupify();
             StartCoroutine(AlignDeck(0.5f));
@@ -299,12 +339,12 @@ namespace JungleeCards.Controllers
                 CardGroupView groupView = GetCardGroupWithID(cardView.CardGroupID);
                 UnGroupify(groupView, cardView);
                 Groupify(emptyGroup, cardView);
+                cardView.transform.localPosition = Vector2.zero;
             }
             gameController.ToggleGroupButton(false);
             selectedCardIds.Clear();
             StartCoroutine(AlignDeck(0.1f));
         }
-
 
         public override void OnGameStart()
         {
@@ -320,6 +360,16 @@ namespace JungleeCards.Controllers
             }
         }
 
+        public string GetScore(List<string> cardsIds)
+        {
+            int score = 0;
+            for (int i = 0; i < cardsIds.Count; i++)
+            {
+                Tuple<SuiteType, int> cardData = GetCardInfo(cardsIds[i]);
+                score += cardData.Item2;
+            }
+            return score.ToString();
+        }
 
         public void OnCardDragComplete(CardView card)
         {
@@ -339,8 +389,9 @@ namespace JungleeCards.Controllers
             }
             if (!hasOverlapped)
             {
-                card.transform.SetParent(GetCardGroupWithID(card.CardGroupID).transform);
-                card.transform.SetAsLastSibling();
+                CardGroupView group = GetCardGroupWithID(card.CardGroupID);
+                card.transform.SetParent(group.transform);
+                card.ResetToLastParent();
             }
             StartCoroutine(AlignDeck(0.2f));
         }
@@ -350,15 +401,9 @@ namespace JungleeCards.Controllers
             return selectedCardIds.Count > 0 ? false : true;
         }
 
-        public override void OnGameOver()
-        {
-
-        }
-
-
         //Cards Max Count = 52 
         //Insertion,Deletion and Search operation worst case will take o(K) -> o(52)
-        //Having a constant time complexity we can check for the card by iterating over the list 
+        //Having a constant time complexity we can check for the card by iterating over the list instead of Hashing
 
         public CardView GetCardWithID(string id)
         {
@@ -375,7 +420,7 @@ namespace JungleeCards.Controllers
 
         //Cards group Max Count = 52 as every single card can have 1 group 
         //Insertion,Deletion and Search operation worst case will take o(K) -> o(52)
-        //Having a constant time complexity we can check for the card groups by iterating over the list 
+        //Having a constant time complexity we can check for the card groups by iterating over the list instead of Hashing
         public CardGroupView GetCardGroupWithID(string id)
         {
             for (int i = 0; i < cardGroups.Count; i++)
@@ -388,6 +433,10 @@ namespace JungleeCards.Controllers
             return null;
         }
 
+        public override void OnGameOver()
+        {
 
+        }
+        #endregion ---------------------------------------------------------------------------
     }
 }
